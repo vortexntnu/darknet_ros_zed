@@ -18,15 +18,22 @@ std::string darknetFilePath_ = DARKNET_FILE_PATH;
 #error Path of darknet repository is not defined in CMakeLists.txt.
 #endif
 
+static float get_pixel(image m, int x, int y, int c)
+{
+    assert(x < m.w && y < m.h && c < m.c);
+    return m.data[c*m.h*m.w + y*m.w + x];
+}
+
 namespace darknet_ros {
 
 char* cfg;
 char* weights;
 char* data;
 char** detectionNames;
+sem_t sem_new_image_; // Semaphore to indicate new image
 
 YoloObjectDetector::YoloObjectDetector(ros::NodeHandle nh)
-    : nodeHandle_(nh), imageTransport_(nodeHandle_), numClasses_(0), classLabels_(0), rosBoxes_(0), rosBoxCounter_(0) {
+    : nodeHandle_(nh), imageTransport_(nodeHandle_), numClasses_(0), classLabels_(0), rosBoxes_(0), rosBoxCounter_(0), imgSync_(ApproxTimePolicy(3), imageSubscriber_, dmapSubscriber_) {
   ROS_INFO("[YoloObjectDetector] Node started.");
 
   // Read parameters from config file.
@@ -43,6 +50,7 @@ YoloObjectDetector::~YoloObjectDetector() {
     isNodeRunning_ = false;
   }
   yoloThread_.join();
+  sem_destroy(&sem_new_image_);
 }
 
 bool YoloObjectDetector::readParameters() {
@@ -78,6 +86,12 @@ void YoloObjectDetector::init() {
   std::string dataPath;
   std::string configModel;
   std::string weightsModel;
+
+  // Initialize semaphore
+  sem_init(&sem_new_image_, 0, 0);
+
+  // ZED camera
+  nodeHandle_.param("zed_enable", zed, false);
 
   // Threshold of object detection.
   float thresh;
@@ -117,6 +131,8 @@ void YoloObjectDetector::init() {
   // Initialize publisher and subscriber.
   std::string cameraTopicName;
   int cameraQueueSize;
+  std::string dmapTopicName;
+  int dmapQueueSize;
   std::string objectDetectorTopicName;
   int objectDetectorQueueSize;
   bool objectDetectorLatch;
@@ -126,9 +142,13 @@ void YoloObjectDetector::init() {
   std::string detectionImageTopicName;
   int detectionImageQueueSize;
   bool detectionImageLatch;
+  std::string ns;
 
+  nodeHandle_.getParam("namespace", ns);
   nodeHandle_.param("subscribers/camera_reading/topic", cameraTopicName, std::string("/camera/image_raw"));
   nodeHandle_.param("subscribers/camera_reading/queue_size", cameraQueueSize, 1);
+  nodeHandle_.param("subscribers/camera_reading/dmap_topic", dmapTopicName, std::string("/camera/dmap"));
+  nodeHandle_.param("subscribers/camera_reading/dmap_queue_size", dmapQueueSize, 1);
   nodeHandle_.param("publishers/object_detector/topic", objectDetectorTopicName, std::string("found_object"));
   nodeHandle_.param("publishers/object_detector/queue_size", objectDetectorQueueSize, 1);
   nodeHandle_.param("publishers/object_detector/latch", objectDetectorLatch, false);
@@ -139,13 +159,26 @@ void YoloObjectDetector::init() {
   nodeHandle_.param("publishers/detection_image/queue_size", detectionImageQueueSize, 1);
   nodeHandle_.param("publishers/detection_image/latch", detectionImageLatch, true);
 
-  imageSubscriber_ = imageTransport_.subscribe(cameraTopicName, cameraQueueSize, &YoloObjectDetector::cameraCallback, this);
-  objectPublisher_ =
-      nodeHandle_.advertise<darknet_ros_msgs::ObjectCount>(objectDetectorTopicName, objectDetectorQueueSize, objectDetectorLatch);
-  boundingBoxesPublisher_ =
-      nodeHandle_.advertise<darknet_ros_msgs::BoundingBoxes>(boundingBoxesTopicName, boundingBoxesQueueSize, boundingBoxesLatch);
-  detectionImagePublisher_ =
-      nodeHandle_.advertise<sensor_msgs::Image>(detectionImageTopicName, detectionImageQueueSize, detectionImageLatch);
+  if(ns.length() > 0) {
+    cameraTopicName         = "/" + ns + "/" + cameraTopicName;
+    objectDetectorTopicName = "/" + ns + "/" + objectDetectorTopicName;
+    boundingBoxesTopicName  = "/" + ns + "/" + boundingBoxesTopicName;
+    detectionImageTopicName = "/" + ns + "/" + detectionImageTopicName;
+  }
+
+  imageSubscriber_.subscribe(imageTransport_, cameraTopicName, cameraQueueSize);                                       
+  dmapSubscriber_.subscribe(imageTransport_, dmapTopicName, dmapQueueSize);
+  imgSync_.connectInput(imageSubscriber_, dmapSubscriber_);
+  imgSync_.registerCallback(boost::bind(&YoloObjectDetector::zedCameraCallback, this, _1, _2));
+
+  objectPublisher_ = nodeHandle_.advertise<std_msgs::Int8>
+      (objectDetectorTopicName, objectDetectorQueueSize, objectDetectorLatch);
+  boundingBoxesPublisher_ = nodeHandle_.advertise<darknet_ros_msgs::BoundingBoxes>
+      (boundingBoxesTopicName, boundingBoxesQueueSize, boundingBoxesLatch);
+  detectionImagePublisher_ = imageTransport_.advertise
+      (detectionImageTopicName, detectionImageQueueSize);
+
+  ROS_INFO("Waiting for images in topic: %s", imageSubscriber_.getTopic().c_str());
 
   // Action servers.
   std::string checkForObjectsActionName;
@@ -156,34 +189,37 @@ void YoloObjectDetector::init() {
   checkForObjectsActionServer_->start();
 }
 
-void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr& msg) {
+void YoloObjectDetector::zedCameraCallback(const sensor_msgs::ImageConstPtr& img_msg, const sensor_msgs::ImageConstPtr& dmap_msg) {
   ROS_DEBUG("[YoloObjectDetector] USB image received.");
 
-  cv_bridge::CvImagePtr cam_image;
+  cv_bridge::CvImagePtr cam_image, cam_dmap;
 
   try {
-    if (msg->encoding == "mono8" || msg->encoding == "bgr8" || msg->encoding == "rgb8") {
-      cam_image = cv_bridge::toCvCopy(msg, msg->encoding);
-    } else if ( msg->encoding == "bgra8") {
-      cam_image = cv_bridge::toCvCopy(msg, "bgr8");
-    } else if ( msg->encoding == "rgba8") {
-      cam_image = cv_bridge::toCvCopy(msg, "rgb8");
-    } else if ( msg->encoding == "mono16") {
-      ROS_WARN_ONCE("Converting mono16 images to mono8");
-      cam_image = cv_bridge::toCvCopy(msg, "mono8");
-    } else {
-      ROS_ERROR("Image message encoding provided is not mono8, mono16, bgr8, bgra8, rgb8 or rgba8.");
-    }
+    cam_image = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::RGB8);
+    cam_dmap = cv_bridge::toCvCopy(dmap_msg, sensor_msgs::image_encodings::TYPE_32FC1);
+    // if (msg->encoding == "mono8" || msg->encoding == "bgr8" || msg->encoding == "rgb8") {
+    //   cam_image = cv_bridge::toCvCopy(msg, msg->encoding);
+    // } else if ( msg->encoding == "bgra8") {
+    //   cam_image = cv_bridge::toCvCopy(msg, "bgr8");
+    // } else if ( msg->encoding == "rgba8") {
+    //   cam_image = cv_bridge::toCvCopy(msg, "rgb8");
+    // } else if ( msg->encoding == "mono16") {
+    //   ROS_WARN_ONCE("Converting mono16 images to mono8");
+    //   cam_image = cv_bridge::toCvCopy(msg, "mono8");
+    // } else {
+    //   ROS_ERROR("Image message encoding provided is not mono8, mono16, bgr8, bgra8, rgb8 or rgba8.");
+    // }
   } catch (cv_bridge::Exception& e) {
     ROS_ERROR("cv_bridge exception: %s", e.what());
     return;
   }
 
-  if (cam_image) {
+  if (cam_image && cam_dmap) {
     {
       boost::unique_lock<boost::shared_mutex> lockImageCallback(mutexImageCallback_);
-      imageHeader_ = msg->header;
+      imageHeader_ = img_msg->header;
       camImageCopy_ = cam_image->image.clone();
+      camDmapCopy_ = cam_dmap->image.clone();
     }
     {
       boost::unique_lock<boost::shared_mutex> lockImageStatus(mutexImageStatus_);
@@ -191,6 +227,7 @@ void YoloObjectDetector::cameraCallback(const sensor_msgs::ImageConstPtr& msg) {
     }
     frameWidth_ = cam_image->image.size().width;
     frameHeight_ = cam_image->image.size().height;
+    sem_post(&sem_new_image_);
   }
   return;
 }
@@ -201,7 +238,7 @@ void YoloObjectDetector::checkForObjectsActionGoalCB() {
   boost::shared_ptr<const darknet_ros_msgs::CheckForObjectsGoal> imageActionPtr = checkForObjectsActionServer_->acceptNewGoal();
   sensor_msgs::Image imageAction = imageActionPtr->image;
 
-  cv_bridge::CvImagePtr cam_image;
+  cv_bridge::CvImagePtr cam_image, dmap_image;
 
   try {
     cam_image = cv_bridge::toCvCopy(imageAction, sensor_msgs::image_encodings::BGR8);
@@ -301,6 +338,35 @@ detection* YoloObjectDetector::avgPredictions(network* net, int* nboxes) {
   return dets;
 }
 
+float YoloObjectDetector::getObjDepth(float xmin, float xmax, float ymin, float ymax)
+{
+  /* Given the bounding box, read the depth from 9 internal points. Sort them, then take the second minimum.
+   * This is possibly better than taking the minimum as it may be a spurious outlier, for some reason. */
+  std::vector<float> depths;
+  float x, y, d;
+  int refs = 3;
+
+  for (int i=1; i < refs+1; ++i) {
+    for (int j=1; j < refs+1; ++j) {
+      x = xmin + j*(xmax-xmin)/(refs+1);
+      y = ymin + i*(ymax-ymin)/(refs+1);
+      d = camDmapCopy_.at<float>((int)(y*frameHeight_), (int)(x*frameWidth_));
+      if (std::isnormal(d))
+        depths.push_back(d);
+    }
+  }
+
+  std::sort(depths.begin(), depths.end());
+
+  if (depths.size() > 1) {
+    // printf("depth at (%d, %d): %f\n", (int)((xmin+xmax)/2*frameWidth_), (int)((ymin+ymax)/2*frameHeight_), depths[1]);
+    return depths[1];
+  } else if (depths.size() == 1) {
+    // printf("depth at (%d, %d): %f\n", (int)((xmin+xmax)/2*frameWidth_), (int)((ymin+ymax)/2*frameHeight_), depths[0]);
+    return depths[0];
+  } else return NAN; 
+}
+
 void* YoloObjectDetector::detectInThread() {
   running_ = 1;
   float nms = .4;
@@ -319,6 +385,7 @@ void* YoloObjectDetector::detectInThread() {
   if (enableConsoleOutput_) {
     printf("\033[2J");
     printf("\033[1;1H");
+    printf("Zed: %s\n", zed ? "yes" : "no");
     printf("\nFPS:%.1f\n", fps_);
     printf("Objects:\n\n");
   }
@@ -354,9 +421,14 @@ void* YoloObjectDetector::detectInThread() {
           roiBoxes_[count].y = y_center;
           roiBoxes_[count].w = BoundingBox_width;
           roiBoxes_[count].h = BoundingBox_height;
+          roiBoxes_[count].z = getObjDepth(xmin, xmax, ymin, ymax);
           roiBoxes_[count].Class = j;
           roiBoxes_[count].prob = dets[i].prob[j];
-          count++;
+
+          if (enableConsoleOutput_) {
+            printf("at distance %4.2f m\n", roiBoxes_[count].z);
+            ++count;
+          }
         }
       }
     }
@@ -408,6 +480,41 @@ void* YoloObjectDetector::displayInThread(void* ptr) {
     if (demoHier_ <= .0) demoHier_ = .0;
   }
   return 0;
+
+  // image p = buff_[(buffIndex_ + 1)%3];
+  // std::string name = "YOLO V3";
+  // IplImage *disp = ipl_;
+  // int x,y,k;
+  // if(p.c == 3) rgbgr_image(p);
+
+  // char buff[256];
+  // sprintf(buff, "%s", name.c_str());
+
+  // int step = disp->widthStep;
+
+  // for(y = 0; y < p.h; ++y){
+  //     for(x = 0; x < p.w; ++x){
+  //         for(k= 0; k < p.c; ++k){
+  //             disp->imageData[y*step + x*p.c + k] = (unsigned char)(get_pixel(p,x,y,k)*255);
+  //         }
+  //     }
+  // }
+  // if(0){
+  //     int w = 448;
+  //     int h = w*p.h/p.w;
+  //     if(h > 1000){
+  //         h = 1000;
+  //         w = h*p.w/p.h;
+  //     }
+  //     IplImage *buffer = disp;
+  //     disp = cvCreateImage(cvSize(w, h), buffer->depth, buffer->nChannels);
+  //     cvResize(buffer, disp, CV_INTER_LINEAR);
+  //     cvReleaseImage(&buffer);
+  // }
+  // if (viewImage_) {
+  //     cvNamedWindow(buff, CV_WINDOW_NORMAL); 
+  //     cvShowImage(buff, disp);
+  // }
 }
 
 void* YoloObjectDetector::displayLoop(void* ptr) {
@@ -494,6 +601,7 @@ void YoloObjectDetector::yolo() {
   demoTime_ = what_time_is_it_now();
 
   while (!demoDone_) {
+    sem_wait(&sem_new_image_);
     buffIndex_ = (buffIndex_ + 1) % 3;
     fetch_thread = std::thread(&YoloObjectDetector::fetchInThread, this);
     detect_thread = std::thread(&YoloObjectDetector::detectInThread, this);
@@ -577,11 +685,12 @@ void* YoloObjectDetector::publishInThread() {
           boundingBox.ymin = ymin;
           boundingBox.xmax = xmax;
           boundingBox.ymax = ymax;
+          boundingBox.z = rosBoxes_[i][j].z;
           boundingBoxesResults_.bounding_boxes.push_back(boundingBox);
         }
       }
     }
-    boundingBoxesResults_.header.stamp = ros::Time::now();
+    boundingBoxesResults_.header.stamp = boundingBoxesResults_.image_header.stamp;
     boundingBoxesResults_.header.frame_id = "detection";
     boundingBoxesResults_.image_header = headerBuff_[(buffIndex_ + 1) % 3];
     boundingBoxesPublisher_.publish(boundingBoxesResults_);

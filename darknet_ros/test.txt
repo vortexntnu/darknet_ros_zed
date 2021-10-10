@@ -1,0 +1,10 @@
+training_data/WIN_20211006_18_00_33_Pro (2).jpg
+training_data/WIN_20211006_18_00_57_Pro.jpg
+training_data/WIN_20211006_18_00_01_Pro.jpg
+training_data/WIN_20211006_18_01_07_Pro.jpg
+training_data/WIN_20211006_18_00_44_Pro.jpg
+training_data/WIN_20211006_18_01_02_Pro (2).jpg
+training_data/WIN_20211006_18_00_39_Pro.jpg
+training_data/WIN_20211006_18_01_00_Pro.jpg
+training_data/WIN_20211006_18_00_04_Pro.jpg
+training_data/WIN_20211006_17_59_43_Pro.jpg

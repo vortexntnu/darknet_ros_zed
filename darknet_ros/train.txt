@@ -1,0 +1,90 @@
+training_data/WIN_20211006_18_00_14_Pro.jpg
+training_data/WIN_20211006_18_01_01_Pro (2).jpg
+training_data/WIN_20211006_18_00_35_Pro.jpg
+training_data/WIN_20211006_18_00_51_Pro (2).jpg
+training_data/WIN_20211006_18_01_05_Pro.jpg
+training_data/WIN_20211006_18_00_51_Pro.jpg
+training_data/WIN_20211006_17_59_50_Pro.jpg
+training_data/WIN_20211006_18_00_32_Pro.jpg
+training_data/WIN_20211006_17_59_45_Pro.jpg
+training_data/WIN_20211006_18_00_34_Pro.jpg
+training_data/WIN_20211006_18_00_49_Pro.jpg
+training_data/WIN_20211006_18_00_24_Pro.jpg
+training_data/WIN_20211006_18_00_58_Pro.jpg
+training_data/WIN_20211006_18_00_55_Pro.jpg
+training_data/WIN_20211006_18_00_21_Pro.jpg
+training_data/WIN_20211006_18_00_15_Pro.jpg
+training_data/WIN_20211006_18_00_41_Pro.jpg
+training_data/WIN_20211006_18_01_09_Pro.jpg
+training_data/WIN_20211006_18_00_15_Pro (2).jpg
+training_data/WIN_20211006_18_00_46_Pro.jpg
+training_data/WIN_20211006_18_00_27_Pro.jpg
+training_data/WIN_20211006_17_59_41_Pro.jpg
+training_data/WIN_20211006_18_00_40_Pro.jpg
+training_data/WIN_20211006_18_00_31_Pro.jpg
+training_data/WIN_20211006_17_59_57_Pro.jpg
+training_data/WIN_20211006_18_01_06_Pro.jpg
+training_data/WIN_20211006_18_00_27_Pro (2).jpg
+training_data/WIN_20211006_18_00_16_Pro.jpg
+training_data/WIN_20211006_18_00_12_Pro.jpg
+training_data/WIN_20211006_18_01_04_Pro (2).jpg
+training_data/WIN_20211006_18_00_28_Pro.jpg
+training_data/WIN_20211006_18_00_54_Pro.jpg
+training_data/WIN_20211006_18_01_01_Pro.jpg
+training_data/WIN_20211006_18_00_26_Pro.jpg
+training_data/WIN_20211006_17_59_58_Pro.jpg
+training_data/WIN_20211006_18_00_49_Pro (2).jpg
+training_data/WIN_20211006_17_59_55_Pro.jpg
+training_data/WIN_20211006_18_00_38_Pro (2).jpg
+training_data/WIN_20211006_18_00_43_Pro.jpg
+training_data/WIN_20211006_18_00_25_Pro.jpg
+training_data/WIN_20211006_18_00_05_Pro.jpg
+training_data/WIN_20211006_18_00_33_Pro.jpg
+training_data/WIN_20211006_18_00_47_Pro.jpg
+training_data/WIN_20211006_18_01_06_Pro (2).jpg
+training_data/WIN_20211006_18_00_35_Pro (2).jpg
+training_data/WIN_20211006_18_01_03_Pro.jpg
+training_data/WIN_20211006_18_00_54_Pro (2).jpg
+training_data/WIN_20211006_18_00_29_Pro.jpg
+training_data/WIN_20211006_18_00_53_Pro (2).jpg
+training_data/WIN_20211006_18_00_48_Pro.jpg
+training_data/WIN_20211006_18_00_53_Pro.jpg
+training_data/WIN_20211006_17_59_47_Pro.jpg
+training_data/WIN_20211006_18_00_52_Pro.jpg
+training_data/WIN_20211006_18_00_59_Pro.jpg
+training_data/WIN_20211006_17_59_48_Pro.jpg
+training_data/WIN_20211006_18_00_58_Pro (2).jpg
+training_data/WIN_20211006_18_00_03_Pro.jpg
+training_data/WIN_20211006_18_00_29_Pro (2).jpg
+training_data/WIN_20211006_18_00_55_Pro (2).jpg
+training_data/WIN_20211006_18_01_02_Pro.jpg
+training_data/WIN_20211006_17_59_51_Pro.jpg
+training_data/WIN_20211006_18_00_20_Pro.jpg
+training_data/WIN_20211006_18_00_04_Pro (2).jpg
+training_data/WIN_20211006_18_00_26_Pro (2).jpg
+training_data/WIN_20211006_18_01_07_Pro (2).jpg
+training_data/WIN_20211006_18_00_39_Pro (2).jpg
+training_data/WIN_20211006_17_59_53_Pro.jpg
+training_data/WIN_20211006_18_00_06_Pro.jpg
+training_data/WIN_20211006_18_00_30_Pro.jpg
+training_data/WIN_20211006_18_00_36_Pro.jpg
+training_data/WIN_20211006_18_00_18_Pro.jpg
+training_data/WIN_20211006_18_00_37_Pro.jpg
+training_data/WIN_20211006_18_00_45_Pro.jpg
+training_data/WIN_20211006_18_00_24_Pro (2).jpg
+training_data/WIN_20211006_18_01_08_Pro.jpg
+training_data/WIN_20211006_18_00_19_Pro.jpg
+training_data/WIN_20211006_18_01_00_Pro (2).jpg
+training_data/WIN_20211006_18_01_04_Pro.jpg
+training_data/WIN_20211006_18_00_56_Pro (2).jpg
+training_data/WIN_20211006_18_00_56_Pro.jpg
+training_data/WIN_20211006_18_00_22_Pro.jpg
+training_data/WIN_20211006_18_00_42_Pro.jpg
+training_data/WIN_20211006_18_01_05_Pro (2).jpg
+training_data/WIN_20211006_18_00_59_Pro (2).jpg
+training_data/WIN_20211006_18_00_41_Pro (2).jpg
+training_data/WIN_20211006_18_00_32_Pro (2).jpg
+training_data/WIN_20211006_18_00_50_Pro.jpg
+training_data/WIN_20211006_18_00_18_Pro (2).jpg
+training_data/WIN_20211006_18_00_38_Pro.jpg
+training_data/WIN_20211006_18_00_00_Pro.jpg

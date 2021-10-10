@@ -1,0 +1,11 @@
+yolo_model:
+
+  config_file:
+    name: yolo-obj.cfg
+  weight_file:
+    name: yolo-obj_200.weights
+  threshold:
+    value: 0.6
+  detection_classes:
+    names:
+      - spy

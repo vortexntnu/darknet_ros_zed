@@ -1,7 +1,7 @@
 subscribers:
 
   camera_reading:
-    topic: /zed2/zed_node/stereo_raw/image_raw_color
+    topic: /zed2/zed_node/rgb_raw/image_raw_color
     queue_size: 1
     dmap_topic: /zed2/zed_node/depth/depth_registered
     dmap_queue_size: 1

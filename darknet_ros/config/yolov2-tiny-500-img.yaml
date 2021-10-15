@@ -3,7 +3,7 @@ yolo_model:
   config_file:
     name: yolo-obj.cfg
   weight_file:
-    name: yolo-obj_final.weights
+    name: yolo-obj_final-500-img.weights
   threshold:
     value: 0.6
   detection_classes:

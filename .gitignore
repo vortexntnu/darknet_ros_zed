@@ -5,6 +5,7 @@
 *.png
 *.jpg
 *.pyc
+*.weights
 old/
 mnist/
 caffe/
@@ -15,7 +16,6 @@ decaf/
 submission/
 darknet
 .fuse*
-*.weights
 # OS Generated #
 .DS_Store*
 ehthumbs.db

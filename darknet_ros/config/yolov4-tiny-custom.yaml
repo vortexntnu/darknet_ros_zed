@@ -1,11 +1,11 @@
 yolo_model:
 
   config_file:
-    name: yolo-obj.cfg
+    name: yolov4-tiny-custom2.cfg
   weight_file:
-    name: yolo-obj_final-500-img.weights
+    name: yolov4-tiny-custom2_final.weights
   threshold:
-    value: 0.99
+    value: 0.80
   detection_classes:
     names:
       - spy

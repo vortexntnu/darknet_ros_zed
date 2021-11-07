@@ -3,9 +3,9 @@ yolo_model:
   config_file:
     name: yolo-obj.cfg
   weight_file:
-    name: yolo-obj_final-500-img.weights
+    name: yolov2-tiny_underwater.weights
   threshold:
-    value: 0.99
+    value: 0.50
   detection_classes:
     names:
       - spy

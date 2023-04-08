@@ -13,21 +13,22 @@ find_path(DARKNET_PATH
 message(STATUS "Darknet path dir = ${DARKNET_PATH}")
 add_definitions(-DDARKNET_FILE_PATH="${DARKNET_PATH}")
 
-# Find CUDA
-find_package(CUDA QUIET)
-if (CUDA_FOUND)
-  find_package(CUDA REQUIRED)
-  message(STATUS "CUDA Version: ${CUDA_VERSION_STRINGS}")
-  message(STATUS "CUDA Libararies: ${CUDA_LIBRARIES}")
-  set(
-    CUDA_NVCC_FLAGS
-    ${CUDA_NVCC_FLAGS};
-    -O3 -gencode arch=compute_61,code=sm_61
-  )
-  add_definitions(-DGPU)
-else()
-  list(APPEND LIBRARIES "m")
-endif()
+# # Find CUDA - OBSOBS - CUDA does not work on the xavier
+# find_package(CUDA QUIET)
+# if (CUDA_FOUND)
+#   find_package(CUDA REQUIRED)
+#   message(STATUS "CUDA Version: ${CUDA_VERSION_STRINGS}")
+#   message(STATUS "CUDA Libararies: ${CUDA_LIBRARIES}")
+#   set(
+#     CUDA_NVCC_FLAGS
+#     ${CUDA_NVCC_FLAGS};
+#     -O3 -gencode arch=compute_61,code=sm_61
+#   )
+#   add_definitions(-DGPU)
+# else()
+#   list(APPEND LIBRARIES "m")
+# endif()
+list(APPEND LIBRARIES "m")
 
 # Find X11
 message ( STATUS "Searching for X11..." )
